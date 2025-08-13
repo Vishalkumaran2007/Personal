@@ -3,7 +3,7 @@ import requests
 import datetime
 import uuid
 
-COHERE_API_KEY = st.secrets["xLeVaX1IIBLGINcNuBI50LGDDlkZJdYoF5g2AnyO"]
+COHERE_API_KEY = st.secrets["COHERE_API_KEY"]
 COHERE_URL = "https://api.cohere.ai/v1/classify"
 
 if "user_id" not in st.session_state:
@@ -39,3 +39,4 @@ if st.button("Analyze My Mood"):
             st.success(f"Mood: {mood}")
         else:
             st.error(f"Error: {response.text}")
+
