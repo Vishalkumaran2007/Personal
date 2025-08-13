@@ -3,66 +3,39 @@ import requests
 import datetime
 import uuid
 
-# ---------- CONFIG ----------
-N8N_WEBHOOK_URL = "https://vishal1234.app.n8n.cloud/webhook/eda2512c-bc29-480e-9124-e0c8c6cbdc0b"  # Replace with your n8n webhook URL
+COHERE_API_KEY = st.secrets["xLeVaX1IIBLGINcNuBI50LGDDlkZJdYoF5g2AnyO"]
+COHERE_URL = "https://api.cohere.ai/v1/classify"
 
-# Generate or retrieve a persistent user_id
 if "user_id" not in st.session_state:
     st.session_state.user_id = str(uuid.uuid4())
 
-st.set_page_config(page_title="AI Mood Tracker", page_icon="🧠", layout="centered")
+st.title("🧠 AI Mood Tracker")
 
-st.title("🧠 AI-Powered Mood Tracker")
-st.write("Check your mood, get supportive feedback, and track trends.")
+user_text = st.text_area("How are you feeling today?", height=100)
 
-# ---------- USER INPUT ----------
-st.subheader("💬 How are you feeling today?")
-user_text = st.text_area(
-    "Type your feelings here:",
-    height=100,
-    placeholder="I feel anxious about work deadlines..."
-)
-
-# ---------- SUBMIT ----------
 if st.button("Analyze My Mood"):
     if not user_text.strip():
-        st.error("Please write how you are feeling before submitting.")
+        st.error("Please enter some text.")
     else:
-        payload = {
-            "user_id": st.session_state.user_id,
-            "date": datetime.datetime.now().strftime("%Y-%m-%d"),
-            "message": user_text.strip()
+        headers = {
+            "Authorization": f"Bearer {COHERE_API_KEY}",
+            "Content-Type": "application/json"
         }
-        
-        try:
-            response = requests.post(N8N_WEBHOOK_URL, json=payload, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                mood = data.get("mood", "Unknown")
-                support_message = data.get("support_message", "")
-                
-                st.success(f"**Mood Detected:** {mood}")
-                st.write(f"💡 *{support_message}*")
-            else:
-                st.error(f"Error from n8n: {response.text}")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Request failed: {e}")
-
-# ---------- WEEKLY SUMMARY ----------
-st.subheader("📊 Weekly Mood Summary")
-if st.button("Load Weekly Report"):
-    try:
-        summary_url = f"{N8N_WEBHOOK_URL}-summary"  # Example: separate webhook for weekly summary
-        summary_resp = requests.get(summary_url, params={"user_id": st.session_state.user_id})
-        if summary_resp.status_code == 200:
-            content = summary_resp.json()
-            if "chart_base64" in content:
-                import base64
-                chart_bytes = base64.b64decode(content["chart_base64"])
-                st.image(chart_bytes, caption="Your Weekly Mood Trend")
-            else:
-                st.info("No summary chart available yet.")
+        payload = {
+            "model": "embed-english-v3.0",
+            "inputs": [user_text.strip()],
+            "examples": [
+                {"text": "I am feeling great today!", "label": "Happy"},
+                {"text": "I feel terrible and lonely", "label": "Sad"},
+                {"text": "I'm a bit stressed about work", "label": "Anxious"},
+                {"text": "Everything is fine", "label": "Neutral"},
+                {"text": "I'm so angry with them", "label": "Angry"}
+            ]
+        }
+        response = requests.post(COHERE_URL, headers=headers, json=payload)
+        if response.status_code == 200:
+            data = response.json()
+            mood = data["classifications"][0]["prediction"]
+            st.success(f"Mood: {mood}")
         else:
-            st.error(f"Error: {summary_resp.text}")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Request failed: {e}")
+            st.error(f"Error: {response.text}")
