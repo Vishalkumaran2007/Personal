@@ -2,26 +2,17 @@ import streamlit as st
 import requests
 import uuid
 
-# ----------------------------
-# CONFIGURATION
-# ----------------------------
 COHERE_API_KEY = st.secrets["COHERE_API_KEY"]
 
 if "user_id" not in st.session_state:
     st.session_state.user_id = str(uuid.uuid4())
 
-# ----------------------------
-# STREAMLIT UI
-# ----------------------------
 st.set_page_config(page_title="AI Mood Tracker", page_icon="🧠")
 st.title("🧠 AI-Powered Mood Tracker")
 st.markdown("Enter your thoughts below and the AI will classify your mood.")
 
 user_text = st.text_area("How are you feeling today?", height=100)
 
-# ----------------------------
-# MOOD ANALYSIS
-# ----------------------------
 if st.button("Analyze My Mood"):
     if not user_text.strip():
         st.error("⚠ Please enter some text before analyzing.")
@@ -36,12 +27,7 @@ if st.button("Analyze My Mood"):
             "messages": [
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": f"Classify the following text into one of: Happy, Sad, Anxious, Angry, Neutral, Crisis.\nText: {user_text}\nOnly return the label."
-                        }
-                    ]
+                    "content": f"Classify the following text into one of: Happy, Sad, Anxious, Angry, Neutral, Crisis.\nText: {user_text}\nOnly return the label."
                 }
             ]
         }
@@ -54,6 +40,7 @@ if st.button("Analyze My Mood"):
 
         if response.status_code == 200:
             try:
+                # Cohere response structure for command-r chat:
                 mood = response.json()["message"]["content"][0]["text"].strip()
                 st.success(f"**Detected Mood:** {mood}")
             except Exception:
